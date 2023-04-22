@@ -1,0 +1,14 @@
+syntax = "proto3";
+package proto;
+
+option go_package = ".;snowflake_api_service";
+
+service SnowflakeService {
+  rpc NewID(IdRequest) returns (IdResponse) {}
+}
+
+message IdRequest{}
+
+message IdResponse{
+  uint64 id = 1;
+}
