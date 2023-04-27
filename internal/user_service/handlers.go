@@ -1,22 +1,33 @@
 package user_service
 
 import (
-	"context"
 	"encoding/json"
-	"google.golang.org/grpc"
+	"github.com/cockroachdb/pebble"
+	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"user_service/internal/model"
-	snowflake_api_service "user_service/pkg/snowflake-api"
 )
 
 func (s *UserSevice) Get(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
 
+	id := vars["id"]
+
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	log.Println(id)
 	user, err := s.userRepo.Get([]byte(id))
 	if err != nil {
+		if err == pebble.ErrNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -26,7 +37,14 @@ func (s *UserSevice) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *UserSevice) Delete(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	err := s.userRepo.Delete([]byte(id))
 	if err != nil {
@@ -37,67 +55,61 @@ func (s *UserSevice) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *UserSevice) Create(w http.ResponseWriter, r *http.Request) {
-	userData, err := io.ReadAll(r.Body)
+	var user model.User
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	id, err := s.snowflakeClient.NewID()
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	var check model.User
+	req := []byte(strconv.FormatUint(id, 10))
 
-	err = json.Unmarshal(userData, &check)
+	err = s.userRepo.Create(req, user)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := s.snowflakeClient.NewID(context.Background(), &snowflake_api_service.IdRequest{}, []grpc.CallOption{}...)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if resp.GetId() == 0 {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	id := []byte(strconv.FormatUint(resp.GetId(), 10))
-
-	err = s.userRepo.Create(id, userData)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(id)
+	w.Write(req)
 }
 
 func (s *UserSevice) Update(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	userData, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	var check model.User
+	var user model.User
 
-	err = json.Unmarshal(userData, &check)
+	err = json.Unmarshal(userData, &user)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = s.userRepo.Update([]byte(id), userData)
+	err = s.userRepo.Update([]byte(id), user)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

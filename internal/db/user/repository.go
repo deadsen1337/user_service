@@ -1,7 +1,9 @@
 package user
 
 import (
+	"encoding/json"
 	"github.com/cockroachdb/pebble"
+	"user_service/internal/model"
 )
 
 type Repository struct {
@@ -12,12 +14,22 @@ func NewRepository(conn *pebble.DB) *Repository {
 	return &Repository{Db: conn}
 }
 
-func (r *Repository) Create(id, user []byte) error {
-	return r.Db.Set(id, user, nil)
+func (r *Repository) Create(id []byte, user model.User) error {
+	data, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	return r.Db.Set(id, data, nil)
 }
 
-func (r *Repository) Update(id, user []byte) error {
-	return r.Db.Set(id, user, nil)
+func (r *Repository) Update(id []byte, user model.User) error {
+	data, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	return r.Db.Set(id, data, nil)
 }
 
 func (r *Repository) Get(id []byte) ([]byte, error) {

@@ -6,9 +6,7 @@ import (
 )
 
 func NewConnection() *grpc.ClientConn {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	opts = append(opts, grpc.WithBlock())
+	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 
 	conn, err := grpc.Dial("localhost:7002", opts...)
 	if err != nil {
