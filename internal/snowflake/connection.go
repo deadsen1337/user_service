@@ -4,10 +4,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewConnection() (*grpc.ClientConn, error) {
+func NewConnection(addr string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 
-	conn, err := grpc.Dial("localhost:7002", opts...)
+	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
 		return nil, err
 	}

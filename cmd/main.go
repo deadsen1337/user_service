@@ -2,8 +2,10 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 	"user_service/internal/db"
 	"user_service/internal/db/user"
 	"user_service/internal/snowflake"
@@ -11,15 +13,27 @@ import (
 )
 
 func main() {
-	conn, err := snowflake.NewConnection()
+	err := godotenv.Load("config/config.env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	addr := os.Getenv("SNOWFLAKE_SERVICE_ADDR")
+	if addr == "" {
+		log.Fatalf("empty SNOWFLAKE_SERVICE_ADDR")
+	}
+
+	conn, err := snowflake.NewConnection(addr)
 	if err != nil {
 		log.Fatalf("grpc connect ffs error: %s", err)
 	}
+
 	client := snowflake.NewClient(conn)
 	dbConn, err := db.NewConnection()
 	if err != nil {
 		log.Fatalf("could not open db connection: %s", err)
 	}
+
 	userRepo := user.NewRepository(dbConn)
 	service := user_service.NewService(userRepo, client)
 
