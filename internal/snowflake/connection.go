@@ -2,16 +2,15 @@ package snowflake
 
 import (
 	"google.golang.org/grpc"
-	"log"
 )
 
-func NewConnection() *grpc.ClientConn {
+func NewConnection() (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 
 	conn, err := grpc.Dial("localhost:7002", opts...)
 	if err != nil {
-		log.Fatal("grpc connect ffs error: ", err)
+		return nil, err
 	}
 
-	return conn
+	return conn, nil
 }

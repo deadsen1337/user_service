@@ -11,9 +11,15 @@ import (
 )
 
 func main() {
-	conn := snowflake.NewConnection()
+	conn, err := snowflake.NewConnection()
+	if err != nil {
+		log.Fatalf("grpc connect ffs error: %s", err)
+	}
 	client := snowflake.NewClient(conn)
-	dbConn := db.NewConnection()
+	dbConn, err := db.NewConnection()
+	if err != nil {
+		log.Fatalf("could not open db connection: %s", err)
+	}
 	userRepo := user.NewRepository(dbConn)
 	service := user_service.NewService(userRepo, client)
 
